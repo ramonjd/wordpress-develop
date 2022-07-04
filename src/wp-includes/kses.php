@@ -2358,6 +2358,7 @@ function safecss_filter_attr( $css, $deprecated = '' ) {
 			'grid-row-end',
 			'grid-row-gap',
 			'grid-gap',
+			'gap',
 
 			'justify-content',
 			'justify-items',

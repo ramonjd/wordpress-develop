@@ -1055,6 +1055,11 @@ EOF;
 				'css'      => 'align-content: space-between;align-items: start;align-self: center;justify-items: center;justify-content: space-between;justify-self: end',
 				'expected' => 'align-content: space-between;align-items: start;align-self: center;justify-items: center;justify-content: space-between;justify-self: end',
 			),
+			// `gap` as a shorthand for `grid-gap` introduced in 6.1.
+			array(
+				'css'      => 'gap: 20px 5px;',
+				'expected' => 'gap: 20px 5px',
+			),
 			// `columns` and related attributes introduced in 5.3.
 			array(
 				'css'      => 'columns: 6rem auto;column-count: 4;column-fill: balance;column-gap: 9px;column-rule: thick inset blue;column-span: none;column-width: 120px',
