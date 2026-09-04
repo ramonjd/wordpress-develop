@@ -7830,6 +7830,184 @@ class Tests_Theme_wpThemeJson extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests that a block style variation declaring `spacing.blockGap` emits a layout
+	 * gap rule scoped to the variation.
+	 *
+	 * The variation node carries the variation slug in its `name`, which
+	 * `get_layout_styles()` reads as a block name. A slug is never a registered block,
+	 * so without care the layout rules for every variation are dropped.
+	 *
+	 * @ticket 66044
+	 */
+	public function test_block_style_variation_with_block_gap_emits_layout_styles() {
+		register_block_style( 'core/group', array( 'name' => 'custom-group' ) );
+
+		$theme_json = new WP_Theme_JSON(
+			array(
+				'version'  => WP_Theme_JSON::LATEST_SCHEMA,
+				'settings' => array(
+					'spacing' => array(
+						'blockGap' => true,
+					),
+				),
+				'styles'   => array(
+					'blocks' => array(
+						'core/group' => array(
+							'variations' => array(
+								'custom-group' => array(
+									'spacing' => array(
+										'blockGap' => '3em',
+									),
+								),
+							),
+						),
+					),
+				),
+			),
+			'blocks'
+		);
+
+		$stylesheet = $theme_json->get_stylesheet(
+			array( 'styles' ),
+			array( 'custom' ),
+			array(
+				'include_block_style_variations' => true,
+				'skip_root_layout_styles'        => true,
+			)
+		);
+
+		unregister_block_style( 'core/group', 'custom-group' );
+
+		$this->assertStringContainsString(
+			':root :where(.wp-block-group.is-style-custom-group.wp-block-group-is-layout-flex){gap: 3em;}',
+			$stylesheet,
+			'The variation should emit a gap rule scoped to itself.'
+		);
+	}
+
+	/**
+	 * Tests that a block style variation declaring `spacing.blockGap` inside a
+	 * viewport breakpoint emits a layout gap rule within the media query.
+	 *
+	 * The responsive branch takes its own copy of the variation metadata, so it
+	 * needs the variation slug removed for the same reason the base branch does.
+	 *
+	 * @ticket 66044
+	 */
+	public function test_block_style_variation_with_responsive_block_gap_emits_layout_styles() {
+		register_block_style( 'core/group', array( 'name' => 'custom-group' ) );
+
+		$theme_json = new WP_Theme_JSON(
+			array(
+				'version'  => WP_Theme_JSON::LATEST_SCHEMA,
+				'settings' => array(
+					'spacing'  => array(
+						'blockGap' => true,
+					),
+					'viewport' => array(
+						'mobile' => '599px',
+					),
+				),
+				'styles'   => array(
+					'blocks' => array(
+						'core/group' => array(
+							'variations' => array(
+								'custom-group' => array(
+									'spacing' => array(
+										'blockGap' => '3em',
+									),
+									'@mobile' => array(
+										'spacing' => array(
+											'blockGap' => '1em',
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
+			'blocks'
+		);
+
+		$stylesheet = $theme_json->get_stylesheet(
+			array( 'styles' ),
+			array( 'custom' ),
+			array(
+				'include_block_style_variations' => true,
+				'skip_root_layout_styles'        => true,
+			)
+		);
+
+		unregister_block_style( 'core/group', 'custom-group' );
+
+		$this->assertStringContainsString(
+			'@media (width <= 599px)',
+			$stylesheet,
+			'The breakpoint media query should be emitted.'
+		);
+		$this->assertStringContainsString(
+			':root :where(.wp-block-group.is-style-custom-group.wp-block-group-is-layout-flex){gap: 1em;}',
+			$stylesheet,
+			'The variation should emit a gap rule inside the breakpoint.'
+		);
+	}
+
+	/**
+	 * Tests that the layout support check still applies to a variation's blockGap.
+	 *
+	 * The variation metadata carries the block it belongs to, so a block without
+	 * layout support emits no gap rule -- the check is answered, not skipped.
+	 *
+	 * @ticket 66044
+	 */
+	public function test_block_style_variation_block_gap_respects_layout_support() {
+		register_block_style( 'core/paragraph', array( 'name' => 'custom-paragraph' ) );
+
+		$theme_json = new WP_Theme_JSON(
+			array(
+				'version'  => WP_Theme_JSON::LATEST_SCHEMA,
+				'settings' => array(
+					'spacing' => array(
+						'blockGap' => true,
+					),
+				),
+				'styles'   => array(
+					'blocks' => array(
+						'core/paragraph' => array(
+							'variations' => array(
+								'custom-paragraph' => array(
+									'spacing' => array(
+										'blockGap' => '3em',
+									),
+								),
+							),
+						),
+					),
+				),
+			),
+			'blocks'
+		);
+
+		$stylesheet = $theme_json->get_stylesheet(
+			array( 'styles' ),
+			array( 'custom' ),
+			array(
+				'include_block_style_variations' => true,
+				'skip_root_layout_styles'        => true,
+			)
+		);
+
+		unregister_block_style( 'core/paragraph', 'custom-paragraph' );
+
+		$this->assertStringNotContainsString(
+			'is-style-custom-paragraph',
+			$stylesheet,
+			'core/paragraph has no layout support, so its variation should emit no gap rule.'
+		);
+	}
+
+	/**
 	 * Tests that block-level settings inherit global default settings when not explicitly set.
 	 *
 	 * When a block doesn't have its own default presets setting, it should inherit
